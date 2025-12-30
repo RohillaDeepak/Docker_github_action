@@ -1,0 +1,43 @@
+
+name: Docker Build (No Push)
+
+on:
+  # Build on every push and PR to main
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  # Allow manual runs from the Actions tab
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Optional but helpful: leverage GitHub cache for faster rebuilds
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false                       # <-- IMPORTANT: no push
+          tags: local/test-image:latest     # local tag (only for logging purposes)
+          # Enable build output logs
+          provenance: false
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
